@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חוברת אקורדים אינטראקטיבית - Jorge Aragão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Chosen Palette: Coffee & Gold (Minimalist Musicianship) */
+        :root {
+            --bg-color: #fdfbf7;
+            --sidebar-bg: #ffffff;
+            --primary-amber: #b45309;
+            --text-dark: #1c1917;
+            --chord-color: #d97706;
+        }
+
+        body {
+            font-family: 'Assistant', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        /* Essential for Chord Alignment */
+        .chord-engine {
+            font-family: 'Courier Prime', monospace;
+            white-space: pre;
+            direction: ltr !important;
+            text-align: left !important;
+            display: inline-block;
+            min-width: 100%;
+        }
+
+        .chord {
+            color: var(--chord-color);
+            font-weight: 700;
+        }
+
+        .sidebar-item-active {
+            background-color: #fef3c7;
+            border-right: 4px solid var(--primary-amber);
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .song-card { border: none; box-shadow: none; padding: 0; }
+            .chord-engine { font-size: 11pt !important; }
+        }
+        
+        .scroll-custom::-webkit-scrollbar { width: 6px; }
+        .scroll-custom::-webkit-scrollbar-track { background: #f1f1f1; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row">
+
+<!-- Navigation Sidebar -->
+<nav class="no-print w-full md:w-80 bg-white border-l border-stone-200 shadow-sm flex flex-col h-screen sticky top-0 z-50">
+    <div class="p-6 border-b border-stone-100">
+        <h1 class="text-2xl font-black text-amber-900 tracking-tight">החוברת שלי</h1>
+        <p class="text-xs text-stone-400 mt-1 uppercase tracking-widest font-bold">Jorge Aragão Repertoire</p>
+    </div>
+    
+    <div class="flex-grow overflow-y-auto scroll-custom py-2" id="song-menu">
+        <!-- JS dynamic injection -->
+    </div>
+
+    <div class="p-4 border-t border-stone-100 bg-stone-50">
+        <button onclick="window.print()" class="w-full py-3 bg-stone-800 text-white rounded-lg font-bold hover:bg-black transition flex items-center justify-center gap-2">
+            <span>הדפס שיר (PDF)</span>
+        </button>
+    </div>
+</nav>
+
+<!-- Main Interaction Area -->
+<main class="flex-grow p-4 md:p-12 overflow-x-hidden">
+    
+    <!-- Welcome Header -->
+    <header id="welcome-screen" class="max-w-2xl mx-auto text-center py-20 no-print">
+        <div class="text-6xl mb-6">🎸</div>
+        <h2 class="text-3xl font-bold text-stone-800 mb-4">מוכן לנגן?</h2>
+        <p class="text-stone-500 leading-relaxed">
+            כל השירים מכתב היד שלך עברו דיגיטציה. האקורדים מיושרים לשמאל בפורמט LTR כדי לשמור על דיוק מקסימלי מעל המילים בפורטוגזית. 
+            <br><br>
+            <strong>בחר שיר מהתפריט בצד כדי להתחיל.</strong>
+        </p>
+    </header>
+
+    <!-- Toolbar (Contextual) -->
+    <div id="toolbar" class="no-print hidden max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex flex-wrap gap-6 items-center justify-between">
+        <div class="flex items-center gap-4">
+            <span class="text-sm font-bold text-stone-500 uppercase">Transpose:</span>
+            <div class="flex items-center bg-stone-100 rounded-lg p-1">
+                <button onclick="transpose(-1)" class="w-10 h-10 flex items-center justify-center hover:bg-white rounded shadow-sm transition">-</button>
+                <span id="key-label" class="w-12 text-center font-mono font-bold text-amber-700 text-lg">0</span>
+                <button onclick="transpose(1)" class="w-10 h-10 flex items-center justify-center hover:bg-white rounded shadow-sm transition">+</button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span class="text-sm font-bold text-stone-500 uppercase">גודל טקסט:</span>
+            <input type="range" min="12" max="26" value="16" oninput="changeFontSize(this.value)" class="accent-amber-600 w-32">
+        </div>
+    </div>
+
+    <!-- Song Display Container -->
+    <article id="song-viewer" class="hidden max-w-5xl mx-auto bg-white p-6 md:p-16 rounded-2xl shadow-xl border border-stone-100">
+        <div class="mb-10 text-right no-print">
+            <h2 id="song-title" class="text-4xl font-black text-stone-900 mb-2"></h2>
+            <p id="song-artist" class="text-amber-700 font-bold tracking-widest uppercase text-sm"></p>
+        </div>
+
+        <div class="mb-8 p-4 bg-amber-50 rounded-lg border border-amber-100 no-print" id="intro-box">
+            <span class="text-xs font-bold text-amber-800 block mb-1">INTRO:</span>
+            <div id="display-intro" class="chord-engine text-amber-900 font-bold"></div>
+        </div>
+
+        <!-- THE CORE CONTENT -->
+        <div class="overflow-x-auto pb-10">
+            <div id="main-chords" class="chord-engine text-stone-800">
+                <!-- Song content injected here -->
+            </div>
+        </div>
+    </article>
+
+</main>
+
+<!-- Application Structure Plan:
+1. Architecture: Single Page Application (SPA) designed as a "Smart Music Stand". 
+2. Alignment Logic: Song content is hard-coded to LTR (Left-To-Right) with Monospace font. This is non-negotiable for musical accuracy where chords must sit above specific syllables in Portuguese.
+3. User Flow: User selects a song from the RTL Hebrew sidebar. The main stage displays the song in LTR layout.
+4. Tools: Real-time Transposition engine shifts chord letters while preserving the spatial alignment (spaces/indentation).
+-->
+
+<!-- Visualization & Content Choices:
+1. Report Source -> Digital Chords -> Goals: Utility, Accuracy, Portability.
+2. Content Presentation: Using HTML <pre> style logic (via white-space: pre) to mimic the handwritten ledger paper.
+3. No SVG: All visuals are CSS-based (Tailwind) or standard text.
+4. Color Palette: Warm neutrals to reduce eye strain during practice sessions.
+-->
+
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<script>
+    const songData = [
+        {
+            id: 'tendencia',
+            title: "Tendência",
+            artist: "Jorge Aragão",
+            intro: "D7+ , D#° , A F#7 B7 E7 A E7",
+            content: `A   F#m7                B7
+Não ..... pra que lamentar
+   Dm  E7                      A  F#7
+se o aconteceu ..... era de esperar
+   Bm     E7                 C#m      F#7
+se eu lhe dei a mão ... foi por me enganar
+    B7                         Dm        E7     A
+foi sem entender, que o amor não pode ha.... ver
+F#m7            B7        Dm        E7               A  F#7
+sem compreensão, a desunião .... tende aparecer
+  Bm     E7          C#m  F#7
+e ai está .... o aconteceu
+     Bm        E7             A          E7
+você destruiu .... o que era seu (veja só)
+
+A                                          C#7
+Você entrou na minha vida, usou e abusou, fez o que quis
+  F#7                       B7             A7
+E agora se desespera, dizendo que é infeliz
+D                 D#°     A             G7       F#7
+Não fui supresa pra mim, você começou pelo fim
+B7                               Dm               E7
+Não me comove o pranto de quem é ruim, é assim
+A                                          C#7
+Quem sabe essa mágoa passando, você venha se redimir
+    F#7                                  B7                    A7
+Dos erros que tanto insistiu por prazer, pra vingar-se de mim
+D                     D#°  A              G7           F#7
+Diz que carente de amor Então você tem que mudar
+   B7                 E7       A            F#7
+se precisar, pode me procurar (procurar)
+   B7                 E7       A
+se precisar pode me procurar
+A  F#m7           B7 , Dm E7  A , B.... E (por favor...)
+La Lalaia laia....`
+        },
+        {
+            id: 'por-favor',
+            title: "Por Favor! Não me olha assim",
+            artist: "Jorge Aragão",
+            intro: "E , F# , F#m , B7 , E",
+            content: `                                 F#
+        Por favor ! Não me olha assim
+F#m             B7        E                   
+        Se não for vou viver só para mim
+
+        Aliás, se isso acontecer
+F#m                 B7               E
+        Tanto faz, já me fiz por merecer
+
+        Mas cuidado, não vá se entregar
+                 Am          B7
+        Nosso caso não pode vazar
+                           E                G#7
+        E tão bom se querer, sem saber
+A                  Am  D7/9
+        Como vai terminar
+G#m7         C#7   F#m7                    Am7       D7/9
+        Onde a lucidez se aninhar, pode deixar
+G#m7         C#7   F#m7
+        Quando a solidão apertar
+Am7             D7/9   G#m7         C#7 C7 B7
+        Olhe pro lado, olhe pro lado
+                         E , F# , F#m , B7 , E
+        Que estarei por lá
+
+        La laiá ......`
+        },
+        {
+            id: 'resto-esperanca',
+            title: "Resto de Esperança",
+            artist: "Jorge Aragão",
+            intro: "F7+ , Cm F7 , Bbm7 , Eb7 , G#7+ , C# , F#7 , G7 , C#7 C7",
+            content: `F7+                      C7                 F7+
+   Ainda resta um pouco de esperança
+         Cm  F7              Bb
+   apesar das desavenças
+Bbm7                     F7+
+   afinal não sou criança
+         Cm7         F7          Bb7+
+   pra que deixar acontecer
+         Eb7                 G#7+  C7
+   E lamentar o dissabor
+F7+                      C7                  F7+         C7
+   você foi mais um caso de amor (ainda resta)
+
+   Am G#m Gm                C7                   F7+
+          Mais um caso como existem tantos por ai
+   Gm                   A7  Dm7              F7
+          pra se machucar só pra se ferir
+   Bbm7                             Eb7
+          Dessa vez não vamos nos deixar levar
+                 G#7+
+          podemos superar
+                      C#7
+          com um pouco de boa vontade
+   F#7                           G7                      C#7 C7
+          Não importa o tempo, coração não tem idade.`
+        },
+        {
+            id: 'nome-na-macumba',
+            title: "Vou botar teu nome na macumba",
+            artist: "Zeca Pagodinho",
+            intro: "F7 Bb C7 F D7 Gm7 C7 Cm F7 Bb C7 F D7 G7 C7 F",
+            content: `         C7
+Eu vou botar
+F                      C7                 F
+Eu vou botar teu nome na macumba
+                 C7              F
+vou procurar uma feiticeira
+            D7                            Gm7           D7
+Fazer um quizumba pra te derrubar , oh iaia
+Gm7                                                     C7
+Você me jogou um feitiço , quase que eu morri
+               Gm7
+Só eu sei o que sofri
+          C7                               F
+Que deus me perdoe , mas vou me vingar
+
+Dm                      Gm7             C7              F
+Eu vou botar teu retrato um prato com pimenta
+Dm                      Gm7             C7                        F
+Quero vê se você guenta a mandinga que eu vou te jogar
+Dm                            Gm7                   C7                       F
+raspa de chifre de bode , pedaço de rabo de jumenta
+                    Dm                  Gm7             C7                      F             C7
+Tu vais botar fogo pelas venta , comigo não vai mais brincar / eu vou botar
+Dm                  Gm7                               C7              F
+Asa de morcego, corcova de camelo pra te derrubar
+Dm                        Gm7                           C7                         F
+Uma cabeça de burro , pra quebrar o encanto do seu patuá
+Dm   C                    Gm7                     C7                                  F
+Olha tu podes ser forte mas tem que ter sorte pra te salvar
+Dm                        Gm7                     C7                               F
+Toma cuidado comadre com a mandinga que eu vou te jogar`
+        },
+        {
+            id: 'doce-refugio',
+            title: "Doce Refúgio",
+            artist: "Fundo de Quintal",
+            intro: "G G5+ G6 G5+",
+            content: `   G G5+ G6 G5+                    G G5+ G6
+Sim ,       é o Cacique de Ramos
+G5+                                   G-F#-Bm7(b5)-E7             Am
+Planton de todos os ramos , cantam os passarinhos nas manhãs
+E7   C            D/C                   Bm    E7
+[ Lá , oi e lá o samba é alta bandeira
+                      A7           Am7       D7           Dm7 G7
+E ate as tamarineiras são de poesia guardiãs ] x2
+
+                 E7            Am                                 D7               G
+I   Seus compositores aquelas que deixam na gente aquela emoção
+                             Dm7                 G7                             C
+    Seus ritmistas vão fundo ,tocando bem fundo qualquer coração
+    Cm                               F7(9)                            Bm7
+    É uma festa brilhante ,Um lindo brilhante mais facil de achar
+            E7                    A7                                                 D7                 G
+    É perto de tudo ali no suburbio um doce refugio pra quem quer cantar
+        D7                        
+    É o cacique /
+
+     E7               Am                               D7                  G
+II   É o Cacique pra uns a cachaça pra outras a religião
+                                  Dm7                          G7                       C
+     Se estou longe o tempo não passa E a saudade abraça o meu coração
+                             Cm               F7(9)                         Bm7
+     Quando ele vai para as ruas, a vida flutua num sonho real
+             E7                          A7                                         D7               G
+     É o povo sorrindo Cacique esculpindo Com mãos de alegria o seu carnaval
+         D7
+     É o cacique/`
+        },
+        {
+            id: 'agua-da-minha-sede',
+            title: "Água da minha sede",
+            artist: "Zeca Pagodinho",
+            intro: "G, Am, C, Am-D7",
+            content: `G                         C    G                           C         G
+Eu preciso do seu amar Paixão forte me domina
+             Eb   Bb                           Eb   Bb
+Agora que começou Não sei mais como termina
+          Am7     Am                    D7
+Agua da minha sede Bebo na sua fonte
+Bm5-/7                    E7       A7                           D7  G
+Sou peixe na sua rede Por do sol no seu horizonte
+              C             G                            C             G
+  Quando você sambou na roda,(Quando você sambou na roda)
+             B7          Em7                             D7        G
+  Fiquei afim de te namorar, (Fiquei afim de te namorar )
+           A7             Am                             D7        Bm7
+O Amor tem essa história Se bate já quer entrar
+                       F^E7       A7                    D7   G
+Se entra não quer sair Ninguem sabe explicar
+           C         Bm                                  C          G
+  O meu amor é passarinheiro,(O meu amor é passarinheiro)
+           B7        Em7                                 D7         G
+  Ele só quer passarinhar , (Ele só quer passarinhar)
+           A7              Am                                    D7        G
+Seu beijo é um alçapão Seu abraço é uma gaiola
+Bm                     E7 A7                                        D7 G
+Que prende meu coração Que nem moda de viola
+                                 D7        G
+                   Na gandaia (Na gandaia),
+                                       D7            Eb°         Em7        D7
+Fruto do meu amor me pegou (Na gandaia)
+                                           D7        G
+Sua renda me rodou (foi a gira)
+           Bm5-/7 E7       A7                 D7     G
+Foi cangira que me enfeitiçou , apaixonado
+                    D7    G
+Preciso do seu amar`
+        },
+        {
+            id: 'clareou',
+            title: "Clareou",
+            artist: "Diogo Nogueira",
+            intro: "C7M(9)",
+            content: `G7M                       Dm7               C7M(9)                        G7M
+A vida é pra quem sabe viver, Procure aprender a arte
+G7M                       Dm7               C7M(9)                        G7M
+Pra quando apanhar não se abater, Ganhar e perder faz parte
+  G7M
+  Levante a cabeça, amigo, a vida não é tão ruim
+  Dm7
+  Um dia a gente perde, mas nem sempre o jogo é assim
+C7M(9)                                                                    G7M
+Pra tudo tem um jeito, e se não teve jeito, ainda não chegou ao fim.
+  G7M
+  Mantenha a fé na crença, se a ciência não curar
+  Dm7
+  Pois se não tem remédio, então remediado está
+C7M(9)                                                                 G7M
+Já é um vencedor, Quem sabe a dor de uma derrota entrentar
+C7M(9)                                                                               G7M
+E a quem deus prometeu, nunca faltou, na hora certa o bom Deus dará
+  C7M(9)                                                          G7M
+  Deus é maior, maior é deus e quem tá com ele, nunca está só
+
+  O que seria do mundo sem ele
+Dm7                    F7M                                C7M(9)
+Chega de chorar, Você já sofreu demais, agora chega
+                                  G7M
+Chega de achar que tudo se acabou
+                                 Dm7  F7M                                     C7M(9)
+Pode a dor uma noite durar, Mas um novo dia sempre vai raiar
+                             G7M
+E quando menos esperar, clareou
+G7M          F7M   C7M(9)   G7M
+Clareou      ôôôô  ôôôô     ôôôô`
+        },
+        {
+            id: 'o-pai-coruja',
+            title: "O Pai Coruja",
+            artist: "Zeca Pagodinho",
+            intro: "",
+            content: `F7+
+G7                      F7+          D7               Gm7
+Amigo, não leve a mal, Mas isso é o meu dever
+                                  C7                                          F7+
+Se quer namorar minha filha, Moça de familia, precisa saber
+                       Cm
+[ Comigo é na moda antiga
+                     F7                      Bb                    Bmb
+Não tem boa vida de encher a barriga, E depois correr
+          F7+             D7        Gm7          C7       F7+
+O velho não é de bobeira, vai pegar voce         ]
+D7                               Gm7             C7                        F7+               D7
+Senta ai no sofa que eu mandei preparar De cidreira um chá pra te tranquilizar
+                              Gm7            C7                           F7+
+Quando se aclamar, me fale a verdade da sua intenção, Cidadão.
+                         Cm             F7
+Se for amar que realmente está sentido
+                                 Bb               Bmb
+Quer casar com ela, não está mentido
+                        F7+             D7           Gm7               C7                 F7+
+Eu prometo, garanto, Seu boi vai na sombra ficar
+Cm                                          F7
+Além de lhe dar meu consentimento, De presente um luxuoso apartamento
+Bb                                     Bmb
+Mobiliado de frente pro mar, pronto pra morar
+F7+                           D7                       Gm7                C7                  F7+     D7
+Porém se for 171, um pé repado, Se meteu na meia de um fogo cruzado
+                              Gm7                   C7                         F7+
+Uma bala perdida, cuidado, ela pode te achar
+                         Cm                 F7
+Tá vendo, aqui na minha casa é um lar de alegria
+                            Bb                    Bmb
+Eu não deixo entrar pirataria
+                             F7+              D7                   Gm7           C7                F7+
+Se eu soltar meu cachorro ele vai ter pegar, amigo !
+          D7                          Gm7
+É um vira-lata ruim de aturar /
+                    C7                             F7+
+Ele ja ta de olho no teu calcanhar /
+       D7                                         Gm7           C7       F7+
+Já matou um pitbull sem sair no lugar /`
+        },
+        {
+            id: 'alguem-me-avisou',
+            title: "Alguém Me Avisou",
+            artist: "Dona Ivone Lara",
+            intro: "F, C7",
+            content: `C7                 F  C7                  F                         C7
+Foram me chamar, Eu estou aqui, o que é que há
+                   F  C7                  F                         C7
+Foram me chamar, Eu estou aqui, o que é que há
+
+          F                 A#          Am   Gm
+Eu vim de lá, eu vim de lá pequenininho
+          F                 A#          Am
+Mas, eu vim de lá pequenininho
+D7                 G7                     C7                  F
+Alguém me avisou pra pisar nesse chão devagarinho
+D7                 G7                     C7                  F
+Alguém me avisou pra pisar nesse chão devagarinho
+
+           D7             Gm
+Sempre fui obediente
+           C7             F
+Mas não pude resistir
+        D7                Gm
+Foi numa roda de samba
+                                  C7                   F
+Que eu juntei-me aos bambas pra me distrair
+D7                        Gm
+Quando eu voltar pra bahia
+      C7                  F
+Terei muito o que contar
+   D7                     Gm
+Oh padrinho não se zangue
+               C7                   F
+Que nasci no samba, Não posso parar.  (Foram...)`
+        },
+        {
+            id: 'pe-na-areia',
+            title: "Pé na Areia",
+            artist: "Diogo Nogueira",
+            intro: "G7M , D7M , G7M , D7M",
+            content: `   D7M(9)                                            D7
+I  Vamos amar, vamos curtir, bora pra beira do mar
+   G7M                             G6
+   Vamos pra onde tá fazendo mais calor
+   Gm7
+   E ninguém pode nos achar
+   D7M(9)                                  D7
+II Bora viver, você e eu agora, eu e você
+   G7M                           G6                    Eb7M
+   Vamos pra onde tudo pode acontecer, Inclusive nada
+   Em7(9)                                 D7M(9)               Em7(9)
+   Nada pode ser melhor do que a gente junto, nós dois
+                                                 D7M(9)             Em7(9)
+   Mil ideias e uma história de amor, e o assunto é, nós dois
+                                         D7M(9)     A/B
+   Dois amantes namorando na beira da praia, iá iá ió
+   Em7(9)                                      F#
+   Nada pode ser melhor pra gente se amar
+
+       Em7(9)           G7M              D7M            B7(9)
+   Pé na areia, a caipirinha, água de coco, a cervejinha
+       Em7(9)           G7M              D7M            B7(9)
+   Pé na areia, água de coco, beira do mar
+
+       Em7(9)           G7M              D7M            B7(9)
+   Pé na areia, a caipirinha, água de coco, a cervejinha
+       Em7(9)           G7M              D7M
+   Pé na areia, água de coco, beira do mar`
+        },
+        {
+            id: 'se-a-fila-andar',
+            title: "Se a fila andar",
+            artist: "Toninho Geraes",
+            intro: "",
+            content: `A                                                B7
+Não, eu não estou, preparado pra te encontrar amor
+            Bm7                  E7                             A F-G
+Nos braços de outra pessoa, só de pensar, já me causa dor
+   A                                                        B7
+Se o sonho acabar, se a fila andar, não vou aceitar facilmente
+            Bm7                                E7                   A
+Tente me preservar, o que a gente não vê o coração não sente
+Em-A7
+   D                  Dm6             C#m                      G7-F#7
+   Vou te admirar se não for vulgar, e não se exibir por castigo
+   B7                 Dm6      E7          A
+   Pois corro perigo, dos nossos amigos, me virem chorar
+   Em          A7
+   não quero nem imaginar
+   D                  Dm6              C#m                                 G7-F#7
+   Se você chegar e me encontrar, no samba, eu lhe peço um favor
+   B7                 Dm6              E7                    A
+   Respeite o insano, sagrado e profano, que foi o nosso amor
+
+laiá la laiá...`
+        },
+        {
+            id: 'falsa-baiana',
+            title: "Falsa Baiana",
+            artist: "João Gilberto",
+            intro: "F7M , C7(9)",
+            content: `F7M
+Baiana que entra na roda e só fica parada
+                                                G7
+                                                C7(9)
+Não samba, não dança, não bole nem nada
+                               F7M , F7
+Não sabe deixar a mocidade louca
+      A#7M                       A#m6               Am7
+Baiana é aquela que entra no samba de qualquer maneira
+               D7                                G7
+Que mexe, remexe, dá nó nas cadeiras
+             C7(9)                      F7M  (D7)
+Deixando a moçada com água na boca
+
+         Gm7                             C7(9)
+A falsa baiana quando entra no samba
+            F7M                          F7
+Ninguém se incomoda, ninguém bate palma
+            Gm7                          C7(9)
+Ninguém abre a roda, ninguém grita ôba
+         F7M       F7
+Salve a bahia, senhor.
+
+                  A#7M                       A#m6
+Mas a gente gostar quando uma baiana
+         Am7                      D7
+Quebra direitinha, de cima embaixo
+          Gm7
+Revira os olhinhos dizendo
+          C7(9)                         F7M  C7(9)
+Eu sou filha de são Salvador.`
+        },
+        {
+            id: 'xodo',
+            title: "Eu só quero um Xodó",
+            artist: "Dominguinhos",
+            intro: "( A# F C7(9) F / A# F C+(9) F C7 )",
+            content: `       F                    Dm7       Am7
+Que falta eu sinto de um bem
+      Gm7           C7(9)        F     C7(9)
+Que falta me faz um Xodó
+       F                    Dm7       Am7
+Mas como eu não tenho ninguém
+     Gm7            C7(9)         F
+Eu levo a vida assim tão só
+
+         Cm                 F7
+   Eu só quero um amor
+         Cm                       G7
+   Que acabe o meu sofrer
+
+      Dm7       G7
+Um xodó pra mim
+            Dm7  G7
+Do meu jeito assim
+        A#   F/A   Gm7  C7(9) F
+Que alegre o meu viver`
+        },
+        {
+            id: 'parabens-pra-voce',
+            title: "Parabéns Pra Você",
+            artist: "Fundo de Quintal",
+            intro: "Am",
+            content: `   Am          C             B7               Bm7(b5)
+I  Se o tempo passou e não fui feliz
+                E7            Am                     E7    Am
+   Sei lá das razões foi deus quem não quis
+             B7       Em              B7                    Bm7(b5)           E7
+   Você me propôs e não foi capaz, fez pouco de mim, até nunca mais.
+Am               C             B7               Bm7(b5)           E7               Em7(b5) A7
+II A dor que passou deixou cicatriz, Pois aquele amor já tinha raiz
+D7       G7 C        E7  Am Bm7(b5)       E7     Em7(b5)    A7
+   Profunda no coração,  foi tão ruim amar em vão
+D7     G7 C       E7   Am        Bm7(b5)          E7             Am    E7
+   Agora me deixe ir,  Adeus eu vou fugir da ilusão
+Am                           E
+*  Parabéns pra voce     Por tentar me enganar
+Em7(b5)                  A7     Dm                            G7
+   Me ferir por prazer  Por capricho vulgar
+                                                                    C
+   Me querer por querer pra depois se negar na decisão
+B7                                                                        Bm7(b5) E7
+   Abusar sem pensar foi demais pro meu coração
+A7M               Dm                             G7                      C7M  E7 Am
+O azar é teu, Se daqui pra frente esta saudade
+                      B7  Bm7(b5)                E7                     A7
+em sua vida for verdade, por favor não vem me procurar
+   Dm                 G7                             C7M  E7 Am
+O azar é teu, Se daqui pra frente esta saudade
+               C      B7  Bm7(b5)                E7                     Am (E7)
+em sua vida for verdade, por favor não vem me procurar.
+            Bm7(b5)           E7                     Am
+(Final:)          por favor não vem me procurar`
+        },
+        {
+            id: 'se-eu-tivesse',
+            title: "Se eu tivesse o poder",
+            artist: "Revelação",
+            intro: "F#m7, Em6 A7 D7M F#m7 Bm7 C#7\nF#m7, Em6 A7 D7M F#m7 Bm7 G7",
+            content: `      F#m               F#m7M
+Bem que eu tentei fazer a minha lei
+      F#m/E             Bm7                         C#7
+Não me encontrei na incerteza me precipitei
+      F#m               F#m7M               F#m/E
+Sofro de ausência total carência tanta imprudência
+      Em7                 A7
+Contra força não há resistência
+
+                 D7M/9                                       E/D
+Se eu tivesse poder faria de tudo pra você voltar
+                 C#m7               F#m7         C#7               F#m7 A7
+Faria absurdo pra me perdoar, voltava no tempo pra tudo mudar
+                 D7M/9                                      E/D
+Se eu tivesse poder faria de novo meu peito sorrir
+                 C#m7               F#m7         C#7               F#m7
+Mandava depressa a tristeza fugir, num toque de mágica continuar
+Em7 - A7         D6/9               C#m7               Em7   A7
+Se eu tivesse poder pra driblar o coração, pra te esquecer.
+
+                 D7M/9                                       E/D
+Se eu tivesse poder faria de tudo pra você voltar
+                 C#m7               F#m7         C#7               F#m7 A7
+Faria absurdo pra me perdoar, voltava no tempo pra tudo mudar
+                 D7M/9                                      E/D
+Se eu tivesse poder faria de novo meu peito sorrir
+                 C#m7               F#m7         C#7               F#m7
+Mandava depressa a tristeza fugir, num toque de mágica continuar
+Em7 - A7         D6/9               C#m7               Bm7 C#7
+Se eu tivesse poder pra driblar o coração, pra te esquecer
+
+lalalalaia lalaiala ...`
+        },
+        {
+            id: 'so-vai-de-camarote',
+            title: "Só vai de camarote",
+            artist: "Revelação",
+            intro: `3 3 0 3 3 3 0 3 3 0           0 3 2 1 0 7 6 5 3 | 3 3 0 3 3 3 0 3 3 0           3 0
+                    1   1                               |                       1   1
+                      2                                 |                         2    
+
+F7  Bb  A7  Dm  F7   Bb
+ei, ei, ei, ei, ei , ei`,
+            content: `                  A7                          Dm
+Ela é gata de elite, só curte área VIP   (2x)
+
+       G7                     Dm
+I  Rainha da balada adora uma batucada
+         F7                   Bb
+   É sempre bem chegada em qualquer pagode
+         Gm6                      A7                            Dm
+   Bem em cima da média, um tremendo filé, e so chega quem pode
+         G7                   Dm                        F7               Bb
+II Tá sempre perfumada, de roupa importada, vagabund azarando e ela nem ai
+         Gm6                      A7                       Dm
+   Se liga ai segurança trás a pulseirinha que ela quer subir
+
+   (F7)      Bb                      A7                       Dm    F7
+   Ela só vai, ela só vai, ela só vai se for de camarote
+             Bb                      A7                       Dm    F7
+   Ela só vai, ela só vai, ela só vai se for de camarote     }(2x)
+
+                F7          Bb                  A7
+   Ela rouba a cena, ela é turbinada, ela é saliente
+   Dm
+   toda marombada,
+         F7                 Bb                       A7
+   ela é atraente toda desenhada, ela é gata de elite
+             Dm
+   e só curte área VIP     (x2)`
+        },
+        {
+            id: 'ta-escrito',
+            title: "Tá escrito",
+            artist: "Revelação",
+            intro: "",
+            content: `     E
+I  Quem cultiva a semente do amor
+   B
+   Segue em frente não se apavora
+   E                     C#m                         x2
+   se na vida encontrar dessabor
+   F#m             B7            ( E , E7 )
+   Vai saber esperar sua hora
+
+         A
+II As vezes a felicidade demora a chegar
+      E                               B7                       E       B7
+   Aí é que a gente não pode deixar de sonhar
+      A                                                        B7
+   Guerreiro não foge da luta não pode correr
+      E                           G#m                  Bm            E7
+   Ninguém vai poder atrazar, quem nasceu pra vencer
+   A
+   É dia de sol mas o tempo pode fechar
+   E                       B7                  E     B7
+   A chuva só vem quando tem que molhar
+         F#m                 B7          E                            C#m
+   Na vida é presico aprender, Se colhe o que tem que plantar
+         F#m                         B7      E , E7
+   é deus quem a ponta a estrela
+                   A                             E
+         Erga essa cabeça mete o pé, e vái na fé
+                                           E
+         Manda essa tristeza embora
+                   B                                             A
+         Basta acreditar que um novo dia vai raiar
+                   B7          E           E7
+         Sua hora vai chegar`
+        },
+        {
+            id: 'o-pato',
+            title: "O Pato",
+            artist: "João Gilberto",
+            intro: "",
+            content: `D6(9)                                          E7(9)
+O pato vinha cantando alegremente, quém, quém
+                        A7
+Quando um marreco sorridente pediu
+                    D6(9)
+Pra entrar também no samba, no samba, no samba
+
+O ganso gostou da dupla e fez também quém, quém
+                           A7
+olhou pro cisne e disse assim "vem, vem"
+                  D6(9)                                    D7(9)
+Que o quarteto ficará bem, muito bom, muito bem
+
+      D7(9)            G7M                       E7(9)
+Na beira da lagoa foram ensaiar para começar
+         A7           D6(9)    D7(9)
+o tico tico no fubá
+           G7M                Gm6           D+M/F#  D7(9)
+A voz do pato era mesmo um desacato
+           G7M                Gm6           D+M/F#
+Jogo de cena com o ganso era mato
+G7M                    D7M                     E7(9)
+Mas eu gostei do final quando caíram n'água
+A7                   D6(9)
+E ensaiando o vocal
+
+      quém  quém  quém  quém
+                                 E7(9)
+      quém  quém  quém  quém
+                                 Em7(9)
+      quém  quém  quém  quém
+                        Eb7(9+)/Bb           D6(9)
+      quém  quém  quém  quém     o   pato`
+        },
+        {
+            id: 'o-bem',
+            title: "O Bem",
+            artist: "Arlindo Cruz",
+            intro: "",
+            content: `Am                  Dm         G7                         C  E7
+O bem ilumina   o  sorriso, tambem  pode  dar proteção
+Am                  Dm
+O bem   é  o  verdadeiro amigo
+         G7                         C      A7
+É quem  dá  o  abrigo  , É que  estende  a  mão
+
+A7                                 Dm      G7
+Num  mundo  de  armadilhas  e  pecados
+                    C
+Armado , tão  carente  de  amor
+A7                          Dm     Em          F7M     G7
+As   vezes  é  bem   mais   valorizado , Amado , endeusado
+            C7
+Quem  é traidor , E  o bem  é   pra  acabar  com   desamor
+
+                        F7M
+Se  a   luz  do  sol  não   para   de  brilhar
+            G7
+Se ainda  existe  noite e luar
+            Em                           Gm7                     C7
+O mal  não  pode  superar , quem  tem fé   pra  rezar  diz  amém .
+                     F7M             C
+E  ver  que   todo   mundo   é  capaz
+                  Dm                  G7
+De ter   um   mundo  só   de   amor   e  paz
+                    C         G             Bb           C7
+Quando  faz  só  o  bem , quando  faz  só   o   bem  .
+                                           F7M , G7 , C  (סיום)`
+        },
+        {
+            id: 'seu-balance',
+            title: "Seu Balancê",
+            artist: "Zeca Pagodinho",
+            intro: "",
+            content: `E              B7           E           B7                    E
+Quando o canto  da  sereia , Reluziu  no  seu  olhar
+                 C#7                               F#m
+Acertou  na  minha  veia , conseguiu  me  enfeitiçar
+           C#7             F#m             C#7             F#m
+Tem  veneno   o  seu  perfume , Que  me  faz   o  seu  refém
+                    B7                                          E
+seu  sorriso  tem  um  lume , que  nenhuma  estrela  tem .
+          B7           E             B7              E
+Tô  com  medo  desse doce , Tô  comendo  em  sua   mão
+                        E7                                   A
+Nunca  imaginei  que  fosse , Mergulhar  na  tentação
+                           Am                                 G#m
+Essa  boca   que   me  beijar , Me  enlouquece   de   paixão
+           C#7             F#m             B7            E       B7
+Te  entreguei  numa  bandeija , A  chave  do   meu   coração
+           E                 C#7                         F#m
+Seu  tempero  me  deixa  bolado  é   um   mel   misturado   com   dendê
+           B7                                                              E             B7
+No  seu  colo  eu  me  embalo  eu  me  embalo  até  numa  casinha  de  sapê
+           C#m7                 C#7                            F#m
+Como  é  lindo  o   bailado  debaixo  dessa   sua   saia   godê
+                    B7                               E     B7
+Quando  roda   no  bamba-querer , fazendo  fuzuê
+           E                 C#7                       F#m
+Minha deusa  esse  seu  encanto  parece  que  vem  do  Ilê
+           B7                                                  E      B7
+Ou  será  que  um  jogo  de  jongo  que  fica  no  Colubandê
+           C#m7                   C#7                                F#m
+Eu só sei  que  o   som   do  batuque  é  truque  do  seu  balancê
+           B7                                            E  B/C7
+preta  cola  comigo  porque , tô  amando  você
+F               D7      Gm              C7                           F       C7
+Lalaia lalaia lalaia lalaia lalaia lala iá , Lalaia lalaia lalaia lalaia lalaia lala iá
+F               D7      Gm              C7
+Lalaia lalaia lalaia lalaia lalaia lala iá , Preta cola comigo porque
+                 F      D7  Gm  C7
+estou  amando  você`
+        },
+        {
+            id: 'nao-fui-convidado',
+            title: "E eu não fui convidado",
+            artist: "Fundo de Quintal",
+            intro: "D , A7 (x2)",
+            content: `refrão: D                  G             G^G#^A                       D
+        Eu não sou culpado meu bem, que seu novo amor tem pavor no passado
+              B7                       Em
+        comprei camisa de seda terno de linho importado
+            A7                        D           B7
+        Dei molho no bom cabelo, fiz um pisante invocado
+                  Em   A7               D     B7
+        mas você se caso, e eu não fui convidado
+                  Em   A7               D
+        mas você se caso e eu não fui convidado
+
+I       B7                      Em      A7                      D
+        Vou lhe dizer o que eu acho sem nenhum constrangimento
+                                     D7                        G
+        Quem tem teto muito baixo não se mete em casamento
+                     Gm                      D
+        Diga pro seu novo amor, essa ele tem que saber
+           B7                 Em                  A7                   D   A7
+        Quero cinquenta por cento do investimento que eu fiz em você
+
+II      B7                  Em  A7                  D
+        Vou te contar uma história do meu tempo de garoto
+                                D7                      G
+        Quem tem cabra que segure, por que o meu bicho tá solto
+                     Gm                       D
+        Diga pro seu novo amor que ele é um tremendo pastel
+        B7                Em                    A7                    D   A7
+        Quero um pedaço do bolo, se não vai dar rolo essa lua-de-mel.
+
+III     B7                  Em        A7                 D
+        Vou dizer outra coisa, sem ter medo de resposta
+                              D7                        G
+        Quem teme águas passadas, não nada em rio de costas
+                     Gm                            D
+        Diga pra seu novo amor que eu não fui e não gostei
+        B7                      Em           A7                    D   A7
+        Ninguém vai cortar a fita da obra bonita que inaugurei`
+        },
+        {
+            id: 'viola-em-bandoleira',
+            title: "Viola em bandoleira",
+            artist: "Samba de Raiz",
+            intro: "Am",
+            content: `             Dm              E7            Am
+Andei Andei , de violão em bandoleira
+             G                                  C  E7
+com saudade da ribeira... terra do meu bem querer
+   Am  E7           Am                         F
+Andei, Andei por aí à fora, Nem o toque da viola
+   E7            Am           E7
+me fez esquecer você , juro que andei!
+Am     A7            Dm                         F
+Andei, Andei por aí á fora, Nem o toque da viola
+   E7            Am             E7
+me fez esquecer você , Mas será ?
+   Am  A7           Dm                      F                     E7
+Será, Baianinha linda, me relembra ainda, aquele dia de verão
+   Am                                 G
+você que fica encantada com copacabana
+                 F                                   E7
+vem mantendo acesa a chama, incendeia essa paixão
+                  Am               A7        Dm                   E7           Am
+mas não tem nada não, pra matar essa saudade que me abale o coração
+                  F           E7            Am
+vou pra festa da ribeira com pandeiro e violão
+                F           E7            Am
+vou tocar a noite inteira pra você esta canção (volta comigo)
+A7               Dm                E7                                       Am
+volta comigo pro rio, baiana (ê baiana), vem pra terra do sambão
+                E7            Am                A7               Dm
+vem pra terra do sambão, vem disputar com a morena serrana
+E7                                          Am
+o pagode batido na palma da mão, Volta comigo (vem, vem, vem)
+                Dm                 E7                                   Am
+volta comigo pro rio baiana (ê baiana), vem pra terra do sambão
+                E7             Am               A7               Dm
+vem pra terra do sambão, vem disputar com a morena serrana
+E7                                        Am            Final: Am, A7, Dm, E7... (Am)
+o pagode batido na palma da mão.`
+        },
+        {
+            id: 'novos-tempos',
+            title: "Novos Tempos",
+            artist: "Revelação / Jorge Aragão",
+            intro: "F - F5+ - Dm - F5+ , C7 , Bb , Bbm , F - F5+ - Dm - F5+",
+            content: `   Bm5-/7                                  E7
+I  O ar que se respira agora inspira novos tempos
+   Cm6                           D7
+   Os sonhos meus e os teus decoram nosso apartamento
+   Bbm6                             C7
+   Lá fora a sorte trama enquanto aqui
+                    F  F5+       Dm                  F5+
+   Reflete a lua em nossa cama, E a vida segue assim
+
+   Bm5-/7                           E7
+II Tão docemente vista da sacada da varanda
+   Cm6                          D7
+   Eterna, plena, adormecida sobre as andas
+   Bbm6                    C7
+   E eu vizinho de uma estrela
+                                    F  F5+
+   Adoro vê-la iluminado o meu pedaço
+     Dm                    F5+                    C7
+   Foi deus quem me mandou, Seguir teus passos
+                                      F7
+   Pensando bem, a lua tem seus traços
+                               Bb7+ Bb6
+   E o céu desaba em nosso corredor
+   Bbm             F        Bbm                  F
+   esse é nosso amor , esse é nosso amor
+
+refrão:   C7                        Bb             Bbm
+          Lençol de fogo no frio  A porta aberta pro cio
+                        F F5+ Dm F5+
+          brincar de amor.
+          C7                        Bb             Bbm
+          Lençol de fogo no frio  A porta aberta pro cio
+                        F F5+ Dm
+          Brincar de amor
+          ( F F5+ Dm F5+ Bm5-/7 )`
+        },
+        {
+            id: 'eu-canto-samba',
+            title: "Eu Canto Samba",
+            artist: "Paulinho Da Viola",
+            intro: "",
+            content: `   D                                                  Em
+Eu canto samba, porque só assim eu me sinto contente
+   A7                                                 
+Eu vou ao samba,
+                             D   A7
+porque longe dele não posso viver
+   D                             B7             Em
+Com ele eu tenho de fato, Uma velha intimidade
+   A7                                D    A7
+Se fico sozinho , Ele vem me socorrer
+
+   D
+Há muito tempo eu escuto esse papo furado
+   Em
+Dizendo que o samba acabou
+   A7                            D    A7
+Só se foi quando o dia clareou
+
+   Em             A7                        D
+O samba é alegria , Falando de coisas da gente
+   D7                                G
+Se você anda tristonho , No samba fica contente
+   Gm7
+Segura o choro criança
+   D
+Vou te fazer o carinho
+   A7
+levando o samba de leve
+                              D    A7
+Nas cordas do meu cavaquinho`
+        },
+        {
+            id: 'trilha-do-amor',
+            title: "Trilha do amor",
+            artist: "Grupo Revelação",
+            intro: "",
+            content: `   F#m7/9 (Em7)
+I  Fui lá na bahia de são salvador
+   Am6 (Gm6)
+   Peguei um Axé nos encantos de lá
+   G#m7 (F#m7)
+   voltei pro meu rio do meu redentor
+   G#7 (F#7/5-)               C#7 (B7)
+   pra ver meu amor que é lá de Irajá
+   A7+ (G7+)                   B7 (A7)                               (F#7 B7)
+   tô cheio da saudade do nosso calor                                G#7/5- C#7
+   G#m7 (F#m7)    (F#7) G#7/5- C#m(Bm)       G#7/5- C#7
+   e tudo que eu quero é chegar e poder, Te amar, Te abraçar
+   F#m7/9 (Em7)
+II Matar a vontade que tanto senti
+   Am6 (Gm6)
+   sem o teu carinho não da pra ficar
+   G#m7 (F#m7)
+   rezei para o nosso senhor do bonfim
+   G#7 (F#7/5-)              C#7 (B7)
+   e trouxe uma fita pra te abençoar
+   A7+ (G7+)                   B7 (A7)                               (F#7 B7)
+   e tive a certeza que a gente é assim                              G#7/5- C#7
+   G#m7 (F#m7)    (F#7) G#7 C#m (Bm)         G#7/5- C#7
+   um longe do outro não dá pra ficar, Não dá pra separar
+
+refrão: F#m7/9 (Em7/9)                    (2) F#m7 (Em7/9)
+   Eu vou seguindo a trilha do amor           eu vou seguindo a trilha do amor
+   Am6 (Gm6)                                  Am6 (Gm6)
+   Enquanto essa paixão me guiar              onde você quiser vou estar
+   G#m7 (F#m7)                                G#m7 (F#m7)
+   deixa o coração me levar                   sem você não dá pra ficar
+   G#7/5- (F#7) (B7) C#7                      G#7 (F#7 B7) C#7
+   deixa o coração me levar                   sem você não dá pra ficar`
+        },
+        {
+            id: 'trem-das-onze',
+            title: "Trem das onze",
+            artist: "",
+            intro: "",
+            content: `E7/Am                                         Gm/E           A7
+Não posso ficar                       Além disso mulher
+            Am                                         Dm7
+nem mais um minuto com você           tem outra coisa
+            Am       A7          Dm(Bb-A7)   Bm7/-5
+sinto muito amor, mas não pode ser    minha mãe não dorme
+Bm7/-5    E7      Am                                   G#dim
+moro      em      jaçanã              enquanto eu não chegar
+               Am                                      Dm  E7  Am  Am/G
+se eu perder esse trem                sou filho único
+            Bm7/-5       E7                  Bm7/-5        E7      Am       (A7)
+que sai agora ás onze horas           tenho minha casa pra olhar
+Dm      E7      Am
+só amanhã de manhã`
+        },
+        {
+            id: 'lakachat-et-yadi',
+            title: "לקחת את ידי בידך",
+            artist: "מתי כספי & יהודית רביץ",
+            intro: "",
+            content: `Gm                       Dm                Gm                     Dm
+אבדה   ודרכי          לבד     והיית         ואמרת לי         בידך    ידי    את   לקחת
+A      Dm            C        Bb                 A   Dm            C      Bb
+בזמן   לי     באת    ,  ואבדת                     הזמן        אל  ירד   בואי
+Gm                       Dm                Gm                     Dm
+אבדה   ודרכי          לבד     והיית         ואמרת לי         בידך    ידי    את   לקחת
+
+Dm     A7            E7       Dm       Edim      Dm    A7          E7      Dm     Edim
+מכאן  הולכים  לא      משם   שרואים  דברים        משם   רואים לא    מכאן    שרואים  דברים
+Bm           D                 A7            Bm    D                  A7
+להרבה דברים  דרך      גילה ,   לי     נתת    רעד קולך    הגיטרה על     שיר לי  ניגנת
+Gm     D7     A7               Bb            Gm    D7      A7         Bb
+להאמין וכח  פרח  כמו   יפה     חיוק  הבאת    עמד כאילו והזמן  שבה     רחב  ים  בי רוח
+Eb     Bb            F7        Cm7           Eb    Bb            F7       Cm7
+שמש  השיר            טבעת  עלי             ואני  יריח            טעם  כל      עוד    ואני
+G7     Gm            D7        Gm            G7    Gm            D7       Gm
+שעמרת    מה מכל  הטוב  החלק  את              הובטחו  לא/     השנה    חלקת    את
+Eb                   Bb        F7  Cm7       Eb                  Bb       F7      Cm7
+הזמן  את  לעצור  התשובה    ,  כבושון  מלאך  ,  היי בחוץ   הפרי ובוכה   החורף   מן  הגן   קול
+Dm     A7            E7  Dm    Edim          Dm    A7            E7  Dm   Edim
+(Bb) מכאן  הולכים  לא    משם   שרואים   דברים        מכאן  רואים   לא    משם  שרואים  דברים`
+        },
+        {
+            id: 'telegrama',
+            title: "Telegrama",
+            artist: "ExaltaSamba",
+            intro: "G , D/F# , Em , G-A7",
+            content: `D7+                   A/C#
+Ah que saudade de você
+G°                    Bm7
+Estou a te esperar
+G7+         A7          Em A7
+A dor ainda está no meu peito
+
+D7+                   A/C#                 Am7
+Ah, nas ruas meu olhar                     Me liga
+G°                    Bm7                  D7                     G7+
+Fica a te procurar         Em A7           Me manda um telegrama
+G7+         A7             D/F#            Gm6         F#m7 F#7
+A dor ainda está no meu peito              Uma carta de amor
+                                                       Bm7
+G7+         G#°           A7               Que eu vou até lá
+Ah, as marcas de batom                     E7
+      F#7            Bm7                   eu vou
+Num   casaco de vison                                          Bm7
+      G7+            G Am C D7             Que eu vou até lá
+Aquele beijo imaginar                      E7
+                                           eu vou
+G7+         G#°           A/G                                  Bm7
+Ah, com as amigas vou jogar                Que eu vou até lá
+      F#7            Bm7                   E7
+Bate papo e conversa fora                  eu vou                       (Em, A7)
+      G7+            Em A7                                     Bm7
+Pra tentar me segurar                      Que eu vou até lá
+                                           G          A7
+                                           Ah ah ah ah ah`
+        },
+        {
+            id: 'ajoelho-tem-que-rezar',
+            title: "Ajoelho tem que rezar",
+            artist: "Revelação",
+            intro: "Gm7, C7/9, Gm7, C7/9, Eb7, D7, Gm7",
+            content: `Gm7                         C7/9            Gm7
+Não entra nessa , meu amigo, sai da zona de perigo
+                            C7/9
+Vê se não dá sorte pro azar
+Gm7                         C7/9                         Gm7
+Fica ligado no que eu digo , meu mano, fecha comigo
+                            C7/9
+de repente , o bicho pode pegar
+Am7                         D7                     Am7
+eu não tô de papo furado pra você ficar bolado
+                            D7
+Tem gente que tá pagando pra ver
+Gm7                         C7/9                                Gm7
+se liga, teu comportamento tá ficando              alterado
+                            C7/9
+Você pode botar tudo a perder
+Gm7                         C7/9                        Gm7
+vê se segura a tua onda , nessa onda que tu anda
+                            C7/9
+Desanda , descamba e perde o cartaz
+Am7                         D7                                   Am7
+Não vale a pena se queimar por tão pouco, ficar queimado
+                            D7
+Ainda há tempo , vale a pena pensar
+Gm7                         C7/9          Gm7
+amigo, sou teu amigo, tô preocupado contigo
+                            Cm7 - D7      Gm7
+você não pode me decepcionar porque
+Gm7                         Fm7
+Quando o bicho pegar
+Bb7                         Eb Eb5+ Eb6 Eb7+ Am7/5-
+não vai dar nem pra correr          e não adiantará
+                            D7            Gm7
+Ajoelho , tem que rezar.`
+        },
+        {
+            id: 'posso-ate-me-apaixonar',
+            title: "Posso até me apaixonar",
+            artist: "Zeca Pagodinho",
+            intro: "C7, F",
+            content: `Gosto     que   me   enrosca   num   rabo   de   saia
+          Gm7                  Gm
+Quero     carinho    quero     cafuné
+          C7
+esse      teu     decote       me    tira    o    sossego
+          F                    C7
+Vem       me    dar     um     chamego     se   você    quiser
+          F                    D7
+O         seu     remelexo     é     um      caso    sério
+          Gm7                  Gm
+Esconde   um      mistério     que   eu      vou     desvendar
+          C7                                                   F
+Mas       você    pitelzinho   faz logo      um     charminho  pra  me  maltratar
+          Gm                   C7            F
+Não       faz     assim   que  posso   até   me   apaixonar
+          Gm                   C7            F                     }*2
+Faz       assim   que          posso   até   me   apaixonar
+
+F7        Bb                   C7                      F
+Fingindo  inocente      Toda   saliente      Vem    me   olhando   diferente
+          F7                                 Bb
+Chego     a   estremecer,      Meu   deus    que    avião,
+          C7                   F                       F7
+Chamando  minha  atenção ,     Balança   meu coração, E   quer   me  enlouquecer
+          Bb                   C7                      F
+Machuca   esse   seu    nego , Eu  não   vou   pedir  arrego , Não   vou  fraquejar
+          D7                   Gm7
+Você      fazendo  jogo duro,  Só  pensa   no teu  sussurro
+          C7                                 F
+Dentro    de  um      quarto   escuro ,      Querendo   me   amar    (vem)`
+        },
+        {
+            id: 'insensato-destino',
+            title: "Insensato destino",
+            artist: "Zeca Pagodinho",
+            intro: "",
+            content: `O     insensato       destino    pra     que
+Em                                       G7
+tanta       desilusão     no   meu       viver
+C             Am                 B7                                E
+eu          quero   apenas       ser     feliz       ao     menos      uma   vez
+              A7                                     D7
+e           conseguir     o      acalanto        da  paixão
+C             D                  Bm
+fui         desprezado    e      magoada                         II
+              E                  Am   D7                         (G)
+por         alguém        que    abordou     meu     coração     Dm G7   }*2
+
+Gm                                       Cm
+Destino ,         porque         fazes           assim
+                                 F7
+tenha       pena          de             mim
+                                 Bb
+veja        bem           não    mereço          sofrer
+                                 Am
+quero       apenas        um     dia             poder
+D7                               Gm
+viver       no   mar      de     felicidade                  (Final
+Bb                               Am   D7         G            Gm Gm7)
+com         alguém        que    me   ame    de      verdade`
+        },
+        {
+            id: 'nao-sou-mais-disso',
+            title: "Não sou mais disso",
+            artist: "Zeca Pagodinho",
+            intro: "A F#7 B7/9 E7 A F#7 B7/9 E7 A",
+            content: `                               F#7              Bm
+Eu não   sei      se     ela   fez    feitiço
+                  E7           A
+Macumba  ou       coisa    assim
+                  F#7                           Bm
+Eu só    sei      que    estou  bem     com     ela
+                  E7           A
+E  a     vida     é      melhor   pra   mim
+                  F#7                   B7/9
+Eu       deixei   de     ser    pé-de-cana
+                  E7           A
+Eu       deixei   de     ser    vagabunda
+                  F#7                   B7/9
+Aumentei minha    fé       em     cristo
+                  E7           A
+sou      bem-quisto      por    todo    mundo     - Bis
+F#m               Bm           E7       A
+Na hora  de       trabalhar    Levanto  sem     reclamar
+F#m               G#m7/5-      C#7      F#m7
+e antes  que      o      galo   cantar  ,  Já   vou
+                  Bm           E7       A               F#m
+A noite  volto    pro    lar  ,  Pra    tomar banho   e jantar
+                  G#m7/5-      C#7      F#m F7 E7
+só tomo  uma      no     bar  ,  Bastou
+A                                       B7/9
+Provei   pra      você   que    não  sou  mais  disso
+                  E7                    A
+Não      perco    mais   o      meu     compromisso
+                                        B7/9
+Não      perco    mais   uma    noite   á   toa
+                  E7                                    A
+Não      traio    e      nem    troco   a   minha   patroa    - Bis`
+        }
+    ];
+
+    let currentActiveId = null;
+    let currentKeyOffset = 0;
+    const chromaticScale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+    function initApp() {
+        const menu = document.getElementById('song-menu');
+        songData.forEach(song => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-right px-6 py-4 border-b border-stone-50 hover:bg-stone-50 transition-all flex flex-col items-start gap-1";
+            btn.innerHTML = `
+                <span class="font-bold text-stone-800">${song.title}</span>
+                <span class="text-xs text-stone-400 font-mono tracking-tighter">${song.artist}</span>
+            `;
+            btn.onclick = () => loadSong(song.id, btn);
+            menu.appendChild(btn);
+        });
+    }
+
+    function loadSong(id, element) {
+        currentActiveId = id;
+        currentKeyOffset = 0;
+        updateUI(element);
+        renderSong();
+    }
+
+    function updateUI(activeBtn) {
+        document.querySelectorAll('#song-menu button').forEach(b => b.classList.remove('sidebar-item-active'));
+        activeBtn.classList.add('sidebar-item-active');
+        
+        document.getElementById('welcome-screen').classList.add('hidden');
+        document.getElementById('toolbar').classList.remove('hidden');
+        document.getElementById('song-viewer').classList.remove('hidden');
+        document.getElementById('key-label').innerText = "0";
+    }
+
+    function renderSong() {
+        const song = songData.find(s => s.id === currentActiveId);
+        if (!song) return;
+
+        document.getElementById('song-title').innerText = song.title;
+        document.getElementById('song-artist').innerText = song.artist;
+        
+        const introTransposed = transposeText(song.intro, currentKeyOffset);
+        document.getElementById('display-intro').innerHTML = wrapChords(introTransposed);
+
+        const contentTransposed = transposeText(song.content, currentKeyOffset);
+        document.getElementById('main-chords').innerHTML = wrapChords(contentTransposed);
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function transposeText(text, offset) {
+        if (offset === 0) return text;
+        
+        // Regex looks for musical notes while ignoring plain Portuguese words
+        return text.replace(/[A-G][#b]?/g, (match) => {
+            let idx = chromaticScale.indexOf(match);
+            
+            // Handle common flats by converting to sharps for the engine
+            if (idx === -1) {
+                const map = {"Bb": 10, "Eb": 3, "Ab": 8, "Db": 1, "Gb": 6};
+                idx = map[match] ?? -1;
+            }
+            
+            if (idx === -1) return match;
+            
+            let newIdx = (idx + offset) % 12;
+            while (newIdx < 0) newIdx += 12;
+            return chromaticScale[newIdx];
+        });
+    }
+
+    function wrapChords(text) {
+        // Regex to find chords (Notes + suffixes like m, 7, +, dim, etc.)
+        const chordRegex = /\b[A-G](?:#|b)?(?:m|maj|dim|aug|[\+\d°/])*(?:\b|(?=\s))/g;
+        return text.replace(chordRegex, match => `<span class="chord">${match}</span>`);
+    }
+
+    function transpose(val) {
+        currentKeyOffset += val;
+        document.getElementById('key-label').innerText = (currentKeyOffset > 0 ? "+" : "") + currentKeyOffset;
+        renderSong();
+    }
+
+    function changeFontSize(size) {
+        document.getElementById('main-chords').style.fontSize = size + 'px';
+    }
+
+    initApp();
+</script>
+
+</body>
+</html>
