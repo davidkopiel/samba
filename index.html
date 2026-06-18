@@ -55,72 +55,82 @@
         .scroll-custom::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col md:flex-row">
+<body class="min-h-screen flex flex-col md:flex-row overflow-x-hidden">
 
 <!-- Navigation Sidebar -->
-<nav class="no-print w-full md:w-80 bg-white border-l border-stone-200 shadow-sm flex flex-col h-screen sticky top-0 z-50">
-    <div class="p-6 border-b border-stone-100">
-        <h1 class="text-2xl font-black text-amber-900 tracking-tight">החוברת שלי</h1>
-        <p class="text-xs text-stone-400 mt-1 uppercase tracking-widest font-bold">Jorge Aragão Repertoire</p>
+<nav class="no-print w-full md:w-80 bg-white md:border-l border-stone-200 shadow-sm flex flex-col md:h-screen sticky top-0 z-50">
+    <!-- Header / Mobile Toggle -->
+    <div class="p-4 md:p-6 border-b border-stone-100 flex justify-between items-center cursor-pointer md:cursor-default" onclick="toggleMobileMenu()">
+        <div>
+            <h1 class="text-xl md:text-2xl font-black text-amber-900 tracking-tight">החוברת שלי</h1>
+            <p class="text-[10px] md:text-xs text-stone-400 mt-1 uppercase tracking-widest font-bold">Jorge Aragão Repertoire</p>
+        </div>
+        <button class="md:hidden text-amber-900 bg-amber-50 p-2 rounded-lg border border-amber-100">
+            <svg id="menu-icon" class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
     </div>
     
-    <div class="flex-grow overflow-y-auto scroll-custom py-2" id="song-menu">
-        <!-- JS dynamic injection -->
-    </div>
+    <!-- Menu Container (Collapsible on Mobile) -->
+    <div id="mobile-menu-collapse" class="hidden md:flex flex-col flex-grow absolute md:relative top-full left-0 w-full h-[calc(100vh-76px)] md:h-auto bg-white shadow-2xl md:shadow-none z-40 border-b border-stone-200 md:border-none">
+        <div class="flex-grow overflow-y-auto scroll-custom py-2" id="song-menu">
+            <!-- JS dynamic injection -->
+        </div>
 
-    <div class="p-4 border-t border-stone-100 bg-stone-50">
-        <button onclick="window.print()" class="w-full py-3 bg-stone-800 text-white rounded-lg font-bold hover:bg-black transition flex items-center justify-center gap-2">
-            <span>הדפס שיר (PDF)</span>
-        </button>
+        <div class="p-4 border-t border-stone-100 bg-stone-50">
+            <button onclick="window.print()" class="w-full py-3 bg-stone-800 text-white rounded-lg font-bold hover:bg-black transition flex items-center justify-center gap-2 shadow-sm">
+                <span>🖨️ הדפס שיר</span>
+            </button>
+        </div>
     </div>
 </nav>
 
 <!-- Main Interaction Area -->
-<main class="flex-grow p-4 md:p-12 overflow-x-hidden">
+<main class="flex-grow p-3 md:p-8 lg:p-12 overflow-x-hidden w-full">
     
     <!-- Welcome Header -->
-    <header id="welcome-screen" class="max-w-2xl mx-auto text-center py-20 no-print">
-        <div class="text-6xl mb-6">🎸</div>
-        <h2 class="text-3xl font-bold text-stone-800 mb-4">מוכן לנגן?</h2>
-        <p class="text-stone-500 leading-relaxed">
+    <header id="welcome-screen" class="max-w-2xl mx-auto text-center py-12 md:py-20 no-print px-4">
+        <div class="text-5xl md:text-6xl mb-4 md:mb-6">🎸</div>
+        <h2 class="text-2xl md:text-3xl font-bold text-stone-800 mb-4">מוכן לנגן?</h2>
+        <p class="text-sm md:text-base text-stone-500 leading-relaxed">
             כל השירים מכתב היד שלך עברו דיגיטציה. האקורדים מיושרים לשמאל בפורמט LTR כדי לשמור על דיוק מקסימלי מעל המילים בפורטוגזית. 
             <br><br>
-            <strong>בחר שיר מהתפריט בצד כדי להתחיל.</strong>
+            <strong>בחר שיר מהתפריט כדי להתחיל.</strong>
         </p>
     </header>
 
     <!-- Toolbar (Contextual) -->
-    <div id="toolbar" class="no-print hidden max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex flex-wrap gap-6 items-center justify-between">
-        <div class="flex items-center gap-4">
+    <div id="toolbar" class="no-print hidden max-w-5xl mx-auto mb-4 md:mb-6 bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex flex-col md:flex-row gap-4 md:gap-6 items-center justify-between w-full">
+        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
             <span class="text-sm font-bold text-stone-500 uppercase">Transpose:</span>
             <div class="flex items-center bg-stone-100 rounded-lg p-1">
-                <button onclick="transpose(-1)" class="w-10 h-10 flex items-center justify-center hover:bg-white rounded shadow-sm transition">-</button>
+                <button onclick="transpose(-1)" class="w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-white rounded shadow-sm transition">-</button>
                 <span id="key-label" class="w-12 text-center font-mono font-bold text-amber-700 text-lg">0</span>
-                <button onclick="transpose(1)" class="w-10 h-10 flex items-center justify-center hover:bg-white rounded shadow-sm transition">+</button>
+                <button onclick="transpose(1)" class="w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-white rounded shadow-sm transition">+</button>
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
             <span class="text-sm font-bold text-stone-500 uppercase">גודל טקסט:</span>
-            <input type="range" min="12" max="26" value="16" oninput="changeFontSize(this.value)" class="accent-amber-600 w-32">
+            <input type="range" id="font-slider" min="10" max="28" value="16" oninput="changeFontSize(this.value)" class="accent-amber-600 w-full md:w-32">
         </div>
     </div>
 
     <!-- Song Display Container -->
-    <article id="song-viewer" class="hidden max-w-5xl mx-auto bg-white p-6 md:p-16 rounded-2xl shadow-xl border border-stone-100">
-        <div class="mb-10 text-right no-print">
-            <h2 id="song-title" class="text-4xl font-black text-stone-900 mb-2"></h2>
-            <p id="song-artist" class="text-amber-700 font-bold tracking-widest uppercase text-sm"></p>
+    <article id="song-viewer" class="hidden max-w-5xl mx-auto bg-white p-4 md:p-10 lg:p-16 rounded-xl md:rounded-2xl shadow-xl border border-stone-100 w-full overflow-hidden">
+        <div class="mb-6 md:mb-10 text-right no-print">
+            <h2 id="song-title" class="text-2xl md:text-4xl font-black text-stone-900 mb-1 md:mb-2"></h2>
+            <p id="song-artist" class="text-amber-700 font-bold tracking-widest uppercase text-xs md:text-sm"></p>
         </div>
 
-        <div class="mb-8 p-4 bg-amber-50 rounded-lg border border-amber-100 no-print" id="intro-box">
+        <div class="mb-6 md:mb-8 p-3 md:p-4 bg-amber-50 rounded-lg border border-amber-100 no-print overflow-x-auto" id="intro-box">
             <span class="text-xs font-bold text-amber-800 block mb-1">INTRO:</span>
-            <div id="display-intro" class="chord-engine text-amber-900 font-bold"></div>
+            <div id="display-intro" class="chord-engine text-amber-900 font-bold text-sm md:text-base"></div>
         </div>
 
         <!-- THE CORE CONTENT -->
-        <div class="overflow-x-auto pb-10">
-            <div id="main-chords" class="chord-engine text-stone-800">
+        <!-- touch-scrolling allows smooth swiping horizontally on mobile -->
+        <div class="overflow-x-auto pb-10 -mx-4 px-4 md:mx-0 md:px-0 scroll-custom" style="-webkit-overflow-scrolling: touch;">
+            <div id="main-chords" class="chord-engine text-stone-800 text-sm md:text-base">
                 <!-- Song content injected here -->
             </div>
         </div>
@@ -1310,6 +1320,23 @@ Não      traio    e      nem    troco   a   minha   patroa    - Bis`
     let currentKeyOffset = 0;
     const chromaticScale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+    function toggleMobileMenu(forceClose = false) {
+        if (window.innerWidth >= 768) return; // Only run on mobile
+        
+        const menu = document.getElementById('mobile-menu-collapse');
+        const icon = document.getElementById('menu-icon');
+        
+        if (forceClose || !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            // Change to Hamburger
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+        } else {
+            menu.classList.remove('hidden');
+            // Change to X mark
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+        }
+    }
+
     function initApp() {
         const menu = document.getElementById('song-menu');
         songData.forEach(song => {
@@ -1322,6 +1349,11 @@ Não      traio    e      nem    troco   a   minha   patroa    - Bis`
             btn.onclick = () => loadSong(song.id, btn);
             menu.appendChild(btn);
         });
+        
+        // Auto-adjust default font size for mobile devices upon loading
+        if (window.innerWidth < 768) {
+            document.getElementById('font-slider').value = 14;
+        }
     }
 
     function loadSong(id, element) {
@@ -1329,6 +1361,9 @@ Não      traio    e      nem    troco   a   minha   patroa    - Bis`
         currentKeyOffset = 0;
         updateUI(element);
         renderSong();
+        
+        // On mobile, hide the menu automatically after selecting a song
+        toggleMobileMenu(true); 
     }
 
     function updateUI(activeBtn) {
